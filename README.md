@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="./assets/banner.png" alt="State Machine — Resonate example" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./assets/banner-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="./assets/banner-light.png">
+    <img alt="State Machine — Resonate example" src="./assets/banner-dark.png">
+  </picture>
 </p>
 
 # State Machine (Order Lifecycle)
