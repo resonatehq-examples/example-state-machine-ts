@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/banner.png" alt="State Machine — Resonate example" />
+</p>
+
 # State Machine (Order Lifecycle)
 
 Durable state machine for an order entity. The order progresses through enforced state transitions — created → confirmed → shipped → delivered (or → cancelled → refunded). If the process crashes mid-transition, it resumes from the last completed state. No transitions execute twice.
