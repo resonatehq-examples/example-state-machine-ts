@@ -47,22 +47,9 @@ export function* orderLifecycle(ctx: Context, orderId: string, path: "deliver" |
 
 On crash and resume, Resonate replays the workflow — but each `yield*` checks the promise store first. Completed transitions return their cached result immediately. The workflow resumes at the first uncompleted transition.
 
-### Restate Comparison
+### Why state lives in the generator
 
-Restate's Virtual Object approach stores state explicitly:
-
-```typescript
-// Restate: explicit K/V state storage
-const status = await ctx.get<OrderStatus>("status") ?? "NEW";
-switch (status) {
-  case "CONFIRMED":
-    await ctx.run(() => carrierAPI.ship(orderId));
-    ctx.set("status", "SHIPPED");
-    break;
-}
-```
-
-Resonate's approach: the generator's execution position IS the status. No `ctx.get`/`ctx.set`. State transitions are enforced by the code structure, not by guard clauses reading a K/V store.
+There is no separate K/V store for the order's status. The generator's execution position IS the status: if control has reached line N, the order has passed every transition above line N. Invalid transitions are *structurally impossible* — there is no code path that reaches `shipped` without first passing through `confirmed`.
 
 ## Prerequisites
 
@@ -157,20 +144,11 @@ example-state-machine-ts/
 
 **Lines of code**: ~241 total, ~50 lines of state machine logic (workflow.ts minus comments).
 
-## Comparison
+## Concurrency note
 
-| | Resonate | Restate |
-|---|---|---|
-| State storage | Generator execution position | K/V store (`ctx.get`/`ctx.set`) |
-| Transition enforcement | Code structure (generator flow) | Guard clauses reading state |
-| State machine code | ~50 LOC | ~90 LOC (payment_service.ts) |
-| Infrastructure | None | Restate server |
-| Concurrent access | Same promise ID = idempotent | Per-key exclusive lock |
-
-Restate's Virtual Object gives you per-key serialization of concurrent calls — two callers racing to transition the same order ID are automatically queued. Resonate handles this differently: two callers using the same workflow ID get the same cached result (idempotency). For true concurrent state access (multiple callers racing to mutate the same entity), Restate's Virtual Object model is more explicit.
+Two callers using the same workflow ID get the same cached result — that's workflow idempotency, not per-key serialization. If you need true concurrent-access exclusivity (multiple callers racing to mutate the same entity under a lock), reach for a mutex pattern (see [example-distributed-mutex-ts](https://github.com/resonatehq-examples/example-distributed-mutex-ts)) or an external store with its own concurrency model. This example optimizes for the common case: one workflow per order, replayed durably.
 
 ## Learn More
 
 - [Resonate documentation](https://docs.resonatehq.io)
-- [Restate payment state machine](https://github.com/restatedev/examples/tree/main/typescript/patterns-use-cases/src/statemachinepayments)
-- [Restate virtual objects intro](https://github.com/restatedev/examples/blob/main/typescript/basics/src/2_virtual_objects.ts)
+- [Distributed mutex pattern](https://github.com/resonatehq-examples/example-distributed-mutex-ts) — serialized access when multiple workers race
