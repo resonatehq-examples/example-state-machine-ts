@@ -69,3 +69,5 @@ if (path === "crash") {
     "\ndelivered was NOT affected by the carrier API failure.",
   );
 }
+
+resonate.stop();
